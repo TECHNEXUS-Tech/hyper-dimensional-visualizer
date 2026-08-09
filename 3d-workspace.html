@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V-FACTOR | ℝ³ Euclidean Workspace</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       GLOBAL SCIFI STYLES
+       ========================================================= */
+    :root {
+      --cyan: #00FFFF;
+      --pink: #FF0055;
+      --bg-void: #050505;
+      --panel-bg: rgba(10, 10, 10, 0.85);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: var(--bg-void); color: #FFF; font-family: 'Space Mono', monospace; overflow: hidden; user-select: none; }
+    
+    /* Animations */
+    @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* =========================================================
+       LAYOUT: HUD SIDEBAR & CANVAS
+       ========================================================= */
+    #canvas-container {
+      position: absolute; top: 0; right: 0; 
+      width: 100vw; height: 100vh; z-index: 1;
+      animation: fadeIn 2s ease;
+    }
+
+    #command-terminal {
+      position: absolute; top: 0; left: 0;
+      width: 400px; height: 100vh;
+      background: var(--panel-bg);
+      border-right: 2px solid rgba(0, 255, 255, 0.3);
+      z-index: 10;
+      padding: 30px;
+      display: flex; flex-direction: column; gap: 30px;
+      backdrop-filter: blur(10px);
+      box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+      animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
+      /* Sci-fi chamfer on bottom right */
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%);
+    }
+
+    /* Terminal Header */
+    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan); }
+    .terminal-header h2 { font-size: 0.8rem; color: var(--pink); letter-spacing: 4px; margin-top: 5px; }
+
+    /* Nav Tabs */
+    .nav-tabs { display: flex; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+    .nav-btn {
+      flex: 1; background: transparent; border: 1px solid #333; color: #888;
+      padding: 8px 0; font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+    .nav-btn:hover { border-color: var(--cyan); color: #FFF; }
+    .nav-btn.active { border-color: var(--pink); background: rgba(255, 0, 85, 0.1); color: var(--pink); text-shadow: 0 0 8px var(--pink); box-shadow: inset 0 0 10px rgba(255,0,85,0.2); }
+
+    /* Control Group */
+    .control-group { display: flex; flex-direction: column; gap: 15px; }
+    .control-group label { color: var(--cyan); font-size: 0.9rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    
+    input[type="text"] {
+      background: #0A0A0A; border: 1px solid rgba(0, 255, 255, 0.4); color: #FFF;
+      padding: 15px; font-family: 'Space Mono', monospace; font-size: 1.1rem;
+      outline: none; transition: 0.3s;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+    input[type="text"]:focus { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0,255,255,0.2); }
+
+    .action-btn {
+      background: rgba(0, 255, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan);
+      padding: 15px; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+    .action-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+
+    /* Utility Buttons (Library, Home) */
+    .utility-row { display: flex; gap: 10px; margin-top: auto; }
+    .util-btn {
+      flex: 1; background: transparent; border: 1px solid #444; color: #AAA;
+      padding: 10px; font-family: 'Space Mono', monospace; cursor: pointer; transition: 0.3s;
+    }
+    .util-btn:hover { border-color: #FFF; color: #FFF; }
+
+    /* =========================================================
+       MODALS (Library)
+       ========================================================= */
+    .modal-overlay {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      z-index: 50; display: none; justify-content: center; align-items: center;
+    }
+    .modal-content {
+      width: 80%; max-width: 900px; max-height: 80vh; padding: 40px; background: var(--panel-bg);
+      border: 1px solid var(--cyan); overflow-y: auto; color: #EEE; animation: zoomIn 0.3s ease forwards;
+      clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+    }
+    .modal-content h2 { font-family: 'Orbitron', sans-serif; color: var(--cyan); margin-bottom: 20px; letter-spacing: 2px; }
+    .close-btn { float: right; background: none; border: none; color: var(--pink); font-size: 1.5rem; cursor: pointer; transition: 0.3s; }
+    .close-btn:hover { text-shadow: 0 0 10px var(--pink); transform: scale(1.1); }
+
+    .eq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
+    .eq-card {
+      background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 15px; cursor: pointer; transition: 0.3s;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+    .eq-card:hover { border-color: var(--cyan); background: rgba(0,255,255,0.1); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,255,255,0.2); }
+    .eq-title { font-family: 'Orbitron', sans-serif; color: var(--cyan); margin-bottom: 5px; font-size: 0.9rem; }
+    .eq-math { color: #AAA; font-size: 0.8rem; word-wrap: break-word; }
+    
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 4px; }
+
+  </style>
+</head>
+<body>
+
+  <!-- LEFT HUD COMMAND TERMINAL -->
+  <div id="command-terminal">
+    
+    <div class="terminal-header">
+      <h1>V-FACTOR</h1>
+      <h2>ℝ³ EUCLIDEAN WORKSPACE</h2>
+    </div>
+
+    <!-- Dimension Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-btn active">3D Surface</button>
+      <!-- Will route to 4D workspace in the next step -->
+      <button class="nav-btn" onclick="window.location.href='4d-workspace.html'">4D Hypercube</button>
+    </div>
+
+    <!-- Input Controls -->
+    <div class="control-group">
+      <label><span>Function Input</span> <span>Z = f(x, y)</span></label>
+      <input type="text" id="eq-input" value="sin(sqrt(x^2 + y^2))" placeholder="e.g., sin(x) * cos(y)">
+      <button class="action-btn" onclick="plot3D()">Execute Plot</button>
+    </div>
+
+    <!-- Telemetry Display -->
+    <div class="control-group" style="margin-top: 20px; opacity: 0.5;">
+      <label style="color: #888;">System Telemetry</label>
+      <div style="font-size: 0.8rem; line-height: 1.5;">
+        Vertices: <span id="v-count">0</span><br>
+        Render Engine: WebGL Core<br>
+        Status: <span style="color: #0F0;">Online</span>
+      </div>
+    </div>
+
+    <!-- Utility Buttons -->
+    <div class="utility-row">
+      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return to Hub</button>
+      <button class="util-btn" onclick="openLibrary()">Database (Library)</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT MAIN CANVAS -->
+  <div id="canvas-container"></div>
+
+  <!-- LIBRARY MODAL -->
+  <div id="library-modal" class="modal-overlay">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeLibrary()">✖</button>
+      <h2>Equation Database</h2>
+      <div id="library-grid" class="eq-grid">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    /* =========================================================
+       1. UI & LIBRARY LOGIC
+       ========================================================= */
+    function openLibrary() { document.getElementById('library-modal').style.display = 'flex'; }
+    function closeLibrary() { document.getElementById('library-modal').style.display = 'none'; }
+
+    const equationDB = [
+      { name: "Rippling Pond", eq: "sin(sqrt(x^2 + y^2))" },
+      { name: "Hyperbolic Paraboloid", eq: "(x^2 / 5) - (y^2 / 5)" },
+      { name: "Egg Carton", eq: "sin(x) * cos(y)" },
+      { name: "Sombrero Hat", eq: "sin(sqrt(x^2+y^2)) / sqrt(x^2+y^2)" },
+      { name: "Volcanic Crater", eq: "cos(x) + cos(y) - exp(-(x^2+y^2))" },
+      { name: "Gaussian Peak", eq: "3 * exp(-(x^2 + y^2)/4)" },
+      { name: "Quantum Interference", eq: "sin(x*2) + cos(y*2) + sin(x*y)" },
+      { name: "The Starfish", eq: "sin(5 * atan2(y, x)) * x * exp(-sqrt(x^2+y^2))" }
+    ];
+
+    const libGrid = document.getElementById('library-grid');
+    equationDB.forEach(item => {
+      let card = document.createElement('div');
+      card.className = 'eq-card';
+      card.innerHTML = `<div class="eq-title">${item.name}</div><div class="eq-math">${item.eq}</div>`;
+      card.onclick = () => {
+        document.getElementById('eq-input').value = item.eq;
+        plot3D();
+        closeLibrary();
+      };
+      libGrid.appendChild(card);
+    });
+
+    /* =========================================================
+       2. THREE.JS 3D ENGINE
+       ========================================================= */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050505, 0.03);
+
+    // Shift camera slightly right to center the object in the remaining 75% of the screen
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(10, 8, 12);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    
+    // Shift controls target to offset for the sidebar
+    controls.target.set(-2, 0, 0);
+
+    const gridHelper = new THREE.GridHelper(40, 40, 0x222222, 0x111111);
+    gridHelper.position.y = -5;
+    scene.add(gridHelper);
+
+    let currentGraph = null;
+
+    /* =========================================================
+       3. MATHEMATICS PARSER & PLOTTER
+       ========================================================= */
+    function plot3D() {
+      const inputStr = document.getElementById('eq-input').value;
+      if (currentGraph) { 
+        scene.remove(currentGraph); 
+        currentGraph.geometry.dispose(); 
+        currentGraph.material.dispose(); 
+      }
+
+      try {
+        const node = math.parse(inputStr);
+        const compiledCode = node.compile();
+
+        const vertices = []; const colors = [];
+        const colorObj = new THREE.Color();
+        const scope = { x: 0, y: 0 }; 
+
+        for (let x = -10; x <= 10; x += 0.1) {
+          for (let y = -10; y <= 10; y += 0.1) {
+            scope.x = x; scope.y = y;
+            let z = compiledCode.evaluate(scope);
+            if (!isFinite(z)) continue; 
+
+            // Offset X so graph renders centered in the viewable area next to sidebar
+            vertices.push(x - 2, z, y); 
+            
+            let hue = 0.5 + (z * 0.1); 
+            colorObj.setHSL(hue, 1.0, 0.5);
+            colors.push(colorObj.r, colorObj.g, colorObj.b);
+          }
+        }
+
+        document.getElementById('v-count').innerText = (vertices.length / 3).toLocaleString();
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({ 
+          size: 0.1, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending 
+        });
+        
+        currentGraph = new THREE.Points(geometry, material);
+        scene.add(currentGraph);
+
+      } catch (error) {
+        console.error("Math Parser Error:", error);
+      }
+    }
+
+    /* =========================================================
+       4. ANIMATION LOOP
+       ========================================================= */
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      
+      if (currentGraph) {
+          // Spin around the offset center
+          const time = Date.now() * 0.0005;
+          currentGraph.rotation.y = time * 0.5;
+      }
+      
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Run initial plot on load
+    plot3D();
+    animate();
+
+  </script>
+</body>
+</html>

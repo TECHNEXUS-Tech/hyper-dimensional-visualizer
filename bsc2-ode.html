@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V-FACTOR | ℝ² ODE Lab: Phase Plane Portraits & Vector Fields</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --cyan: #00FFFF;
+      --pink: #FF0055;
+      --bg-void: #050505;
+      --panel-bg: rgba(10, 10, 10, 0.88);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: var(--bg-void); color: #FFF; font-family: 'Space Mono', monospace; overflow: hidden; user-select: none; }
+    
+    @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    #canvas-container {
+      position: absolute; top: 0; right: 0; 
+      width: 100vw; height: 100vh; z-index: 1;
+      animation: fadeIn 2s ease;
+    }
+
+    #command-terminal {
+      position: absolute; top: 0; left: 0;
+      width: 420px; height: 100vh;
+      background: var(--panel-bg);
+      border-right: 2px solid rgba(255, 0, 85, 0.3);
+      z-index: 10;
+      padding: 25px;
+      display: flex; flex-direction: column; gap: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 10px 0 30px rgba(0,0,0,0.9);
+      animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%);
+      overflow-y: auto;
+    }
+
+    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--pink); letter-spacing: 2px; text-shadow: 0 0 10px var(--pink); }
+    .terminal-header h2 { font-size: 0.75rem; color: var(--cyan); letter-spacing: 3px; margin-top: 4px; }
+
+    .nav-tabs { display: flex; gap: 6px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+    .nav-btn {
+      flex: 1; background: transparent; border: 1px solid #333; color: #888;
+      padding: 6px 0; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; cursor: pointer; transition: 0.3s;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    }
+    .nav-btn:hover { border-color: var(--cyan); color: #FFF; }
+    .nav-btn.active { border-color: var(--pink); background: rgba(255, 0, 85, 0.1); color: var(--pink); box-shadow: inset 0 0 10px rgba(255,0,85,0.2); }
+
+    .control-group { display: flex; flex-direction: column; gap: 10px; }
+    .control-group label { color: var(--pink); font-size: 0.85rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    
+    input[type="text"] {
+      background: #0A0A0A; border: 1px solid rgba(255, 0, 85, 0.4); color: #FFF;
+      padding: 12px; font-family: 'Space Mono', monospace; font-size: 1rem;
+      outline: none; transition: 0.3s;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+    }
+    input[type="text"]:focus { border-color: var(--pink); box-shadow: 0 0 15px rgba(255,0,85,0.2); }
+
+    .action-btn {
+      background: rgba(255, 0, 85, 0.1); border: 1px solid var(--pink); color: var(--pink);
+      padding: 12px; font-family: 'Orbitron', sans-serif; font-size: 1rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+    .action-btn:hover { background: var(--pink); color: #000; box-shadow: 0 0 20px var(--pink); }
+
+    .telemetry-box {
+      background: rgba(0,0,0,0.5); border: 1px solid #222; padding: 12px; font-size: 0.78rem; line-height: 1.6; color: #CCC;
+    }
+    .telemetry-box span { color: var(--pink); }
+
+    .utility-row { display: flex; gap: 10px; margin-top: auto; padding-top: 10px; }
+    .util-btn {
+      flex: 1; background: transparent; border: 1px solid #444; color: #AAA;
+      padding: 8px; font-family: 'Space Mono', monospace; font-size: 0.8rem; cursor: pointer; transition: 0.3s;
+    }
+    .util-btn:hover { border-color: #FFF; color: #FFF; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: var(--pink); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT HUD COMMAND TERMINAL -->
+  <div id="command-terminal">
+    
+    <div class="terminal-header">
+      <h1>V-FACTOR LABS</h1>
+      <h2>B.SC. YR 2: ORDINARY DIFFERENTIAL EQUATIONS</h2>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-btn" onclick="window.location.href='bsc1-calculus.html'">Calculus I</button>
+      <button class="nav-btn active">ODE Lab</button>
+      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">ℝ³ Space</button>
+      <button class="nav-btn" onclick="window.location.href='index.html'">Hub</button>
+    </div>
+
+    <!-- ODE System Input Group -->
+    <div class="control-group">
+      <label><span>dx/dt = f(x, y)</span></label>
+      <input type="text" id="dx-input" value="y" placeholder="e.g., y">
+    </div>
+
+    <div class="control-group">
+      <label><span>dy/dt = g(x, y)</span></label>
+      <input type="text" id="dy-input" value="-x - 0.2*y" placeholder="e.g., -x - y">
+    </div>
+
+    <button class="action-btn" onclick="computeODELab()">Generate Phase Portrait</button>
+
+    <!-- System Telemetry -->
+    <div class="control-group">
+      <label style="color: var(--cyan);">Dynamical System Telemetry</label>
+      <div class="telemetry-box" id="ode-readout">
+        System Type: <span id="sys-type">Planar Vector Field</span><br>
+        Equilibrium: <span id="eq-point">(0, 0) Origin</span><br>
+        Trajectories: <span id="traj-count">Active</span>
+      </div>
+    </div>
+
+    <!-- Utility Return -->
+    <div class="utility-row">
+      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return to Hub</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT MAIN CANVAS -->
+  <div id="canvas-container"></div>
+
+
+  <script>
+    /* =========================================================
+       1. THREE.JS 2D ORTHOGRAPHIC SETUP
+       ========================================================= */
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.OrthographicCamera(
+      window.innerWidth / -30, window.innerWidth / 30,
+      window.innerHeight / 30, window.innerHeight / -30, 
+      0.1, 1000
+    );
+    camera.position.set(2, 0, 10); // Offset X for sidebar alignment
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // Cartesian Grid & Axes
+    const gridHelper = new THREE.GridHelper(40, 40, 0xFF0055, 0x1a1a1a);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.set(2, 0, 0);
+    scene.add(gridHelper);
+
+    let vectorFieldGroup = new THREE.Group();
+    let trajectoriesGroup = new THREE.Group();
+    scene.add(vectorFieldGroup);
+    scene.add(trajectoriesGroup);
+
+    /* =========================================================
+       2. PHASE PORTRAIT & VECTOR FIELD COMPUTATION (Runge-Kutta RK4)
+       ========================================================= */
+    function computeODELab() {
+      const dxStr = document.getElementById('dx-input').value;
+      const dyStr = document.getElementById('dy-input').value;
+
+      // Clear existing field and trajectories
+      vectorFieldGroup.clear();
+      trajectoriesGroup.clear();
+
+      try {
+        const nodeX = math.parse(dxStr);
+        const nodeY = math.parse(dyStr);
+        const fX = nodeX.compile();
+        const fY = nodeY.compile();
+
+        // --- A. DRAW VECTOR FIELD ARROWS ---
+        const spacing = 1.2;
+        const arrowColor = new THREE.Color(0x00FFFF);
+
+        for (let x = -15; x <= 15; x += spacing) {
+          for (let y = -12; y <= 12; y += spacing) {
+            let u = fX.evaluate({ x: x, y: y });
+            let v = fY.evaluate({ x: x, y: y });
+            if (!isFinite(u) || !isFinite(v)) continue;
+
+            let length = Math.sqrt(u * u + v * v);
+            if (length === 0) continue;
+
+            // Normalize and scale vector for visual display
+            let scale = Math.min(length, 1.5) * 0.4;
+            let dirX = (u / length) * scale;
+            let dirY = (v / length) * scale;
+
+            const startPoint = new THREE.Vector3(x + 2, y, 0);
+            const endPoint = new THREE.Vector3(x + 2 + dirX, y + dirY, 0);
+
+            const points = [startPoint, endPoint];
+            const geom = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x00FFFF, transparent: true, opacity: 0.6 });
+            const vectorLine = new THREE.Line(geom, lineMat);
+            vectorFieldGroup.add(vectorLine);
+          }
+        }
+
+        // --- B. COMPUTE TRAJECTORIES USING RUNGE-KUTTA (RK4) ---
+        const dt = 0.05;
+        const steps = 300;
+
+        // Generate trajectories from multiple starting seed points (initial conditions)
+        for (let sx = -12; sx <= 12; sx += 3.0) {
+          for (let sy = -10; sy <= 10; sy += 3.0) {
+            
+            let trajPoints = [];
+            let cx = sx;
+            let cy = sy;
+
+            for (let t = 0; t < steps; t++) {
+              if (Math.abs(cx) > 25 || Math.abs(cy) > 25) break;
+
+              trajPoints.push(new THREE.Vector3(cx + 2, cy, 0));
+
+              // RK4 Integration Step
+              let k1x = fX.evaluate({ x: cx, y: cy });
+              let k1y = fY.evaluate({ x: cx, y: cy });
+
+              let k2x = fX.evaluate({ x: cx + 0.5*dt*k1x, y: cy + 0.5*dt*k1y });
+              let k2y = fY.evaluate({ x: cx + 0.5*dt*k1x, y: cy + 0.5*dt*k1y });
+
+              let k3x = fX.evaluate({ x: cx + 0.5*dt*k2x, y: cy + 0.5*dt*k2y });
+              let k3y = fY.evaluate({ x: cx + 0.5*dt*k2x, y: cy + 0.5*dt*k2y });
+
+              let k4x = fX.evaluate({ x: cx + dt*k3x, y: cy + dt*k3y });
+              let k4y = fY.evaluate({ x: cx + dt*k3x, y: cy + dt*k3y });
+
+              if (!isFinite(k1x) || !isFinite(k2x) || !isFinite(k3x) || !isFinite(k4x)) break;
+
+              cx += (dt / 6) * (k1x + 2*k2x + 2*k3x + k4x);
+              cy += (dt / 6) * (k1y + 2*k2y + 2*k3y + k4y);
+            }
+
+            if (trajPoints.length > 2) {
+              const trajGeom = new THREE.BufferGeometry().setFromPoints(trajPoints);
+              const trajMat = new THREE.LineBasicMaterial({ color: 0xFF0055, transparent: true, opacity: 0.8 });
+              const trajLine = new THREE.Line(trajGeom, trajMat);
+              trajectoriesGroup.add(trajLine);
+            }
+          }
+        }
+
+      } catch (error) {
+        console.error("ODE Parser Error:", error);
+      }
+    }
+
+    /* =========================================================
+       3. RENDER LOOP
+       ========================================================= */
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.left = window.innerWidth / -30;
+      camera.right = window.innerWidth / 30;
+      camera.top = window.innerHeight / 30;
+      camera.bottom = window.innerHeight / -30;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    computeODELab();
+    animate();
+
+  </script>
+</body>
+</html>

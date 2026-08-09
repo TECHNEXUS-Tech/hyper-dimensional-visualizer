@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V-FACTOR | ℝ² Planar Workspace</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --cyan: #00FFFF;
+      --pink: #FF0055;
+      --bg-void: #050505;
+      --panel-bg: rgba(10, 10, 10, 0.85);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: var(--bg-void); color: #FFF; font-family: 'Space Mono', monospace; overflow: hidden; user-select: none; }
+    
+    @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    #canvas-container { position: absolute; top: 0; right: 0; width: 100vw; height: 100vh; z-index: 1; animation: fadeIn 2s ease; }
+
+    #command-terminal {
+      position: absolute; top: 0; left: 0; width: 400px; height: 100vh;
+      background: var(--panel-bg); border-right: 2px solid rgba(0, 255, 255, 0.3);
+      z-index: 10; padding: 30px; display: flex; flex-direction: column; gap: 30px;
+      backdrop-filter: blur(10px); box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+      animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%);
+    }
+
+    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan); }
+    .terminal-header h2 { font-size: 0.8rem; color: var(--pink); letter-spacing: 4px; margin-top: 5px; }
+
+    .nav-tabs { display: flex; gap: 5px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+    .nav-btn {
+      flex: 1; background: transparent; border: 1px solid #333; color: #888;
+      padding: 6px 0; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; cursor: pointer; transition: 0.3s;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+    .nav-btn:hover { border-color: var(--cyan); color: #FFF; }
+    .nav-btn.active { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); color: var(--cyan); box-shadow: inset 0 0 10px rgba(0,255,255,0.2); }
+
+    .control-group { display: flex; flex-direction: column; gap: 15px; }
+    .control-group label { color: var(--cyan); font-size: 0.9rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    
+    input[type="text"] {
+      background: #0A0A0A; border: 1px solid rgba(0, 255, 255, 0.4); color: #FFF;
+      padding: 15px; font-family: 'Space Mono', monospace; font-size: 1.1rem; outline: none; transition: 0.3s;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+    input[type="text"]:focus { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0,255,255,0.2); }
+
+    .action-btn {
+      background: rgba(0, 255, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan);
+      padding: 15px; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+    .action-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+
+    .utility-row { display: flex; gap: 10px; margin-top: auto; }
+    .util-btn { flex: 1; background: transparent; border: 1px solid #444; color: #AAA; padding: 10px; font-family: 'Space Mono', monospace; cursor: pointer; transition: 0.3s; }
+    .util-btn:hover { border-color: #FFF; color: #FFF; }
+  </style>
+</head>
+<body>
+
+  <div id="command-terminal">
+    <div class="terminal-header">
+      <h1>V-FACTOR</h1>
+      <h2>ℝ² PLANAR WORKSPACE</h2>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-btn active">2D</button>
+      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">3D</button>
+      <button class="nav-btn" onclick="window.location.href='4d-workspace.html'">4D</button>
+      <button class="nav-btn" onclick="window.location.href='5d-workspace.html'">5D</button>
+    </div>
+
+    <div class="control-group">
+      <label><span>Function Input</span> <span>Y = f(x)</span></label>
+      <input type="text" id="eq-input" value="sin(x) * x" placeholder="e.g., x^2 - 4">
+      <button class="action-btn" onclick="plot2D()">Execute 2D Plot</button>
+    </div>
+
+    <div class="control-group" style="margin-top: 20px; opacity: 0.5;">
+      <label style="color: #888;">System Telemetry</label>
+      <div style="font-size: 0.8rem; line-height: 1.5;">
+        Plane: Cartesian (X, Y)<br>
+        Status: <span style="color: #0F0;">Online</span>
+      </div>
+    </div>
+
+    <div class="utility-row">
+      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return Hub</button>
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.OrthographicCamera(
+      window.innerWidth / -40, window.innerWidth / 40,
+      window.innerHeight / 40, window.innerHeight / -40, 
+      0.1, 1000
+    );
+    camera.position.set(2, 0, 10); // Offset camera slightly right for sidebar balance
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // 2D Cartesian Grid Helpers
+    const gridHelper = new THREE.GridHelper(50, 50, 0xFF0055, 0x222222);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.set(2, 0, 0);
+    scene.add(gridHelper);
+
+    let currentCurve = null;
+
+    function plot2D() {
+      const inputStr = document.getElementById('eq-input').value;
+      if (currentCurve) {
+        scene.remove(currentCurve);
+        currentCurve.geometry.dispose();
+        currentCurve.material.dispose();
+      }
+
+      try {
+        const node = math.parse(inputStr);
+        const compiledCode = node.compile();
+
+        const points = [];
+        const scope = { x: 0 };
+
+        for (let x = -25; x <= 25; x += 0.05) {
+          scope.x = x;
+          let y = compiledCode.evaluate(scope);
+          if (isFinite(y)) {
+            points.push(new THREE.Vector3(x + 2, y, 0)); // Offset X for sidebar alignment
+          }
+        }
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ color: 0x00FFFF, linewidth: 3 });
+        
+        currentCurve = new THREE.Line(geometry, material);
+        scene.add(currentCurve);
+
+      } catch (error) {
+        console.error("2D Parser Error:", error);
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      camera.left = window.innerWidth / -40;
+      camera.right = window.innerWidth / 40;
+      camera.top = window.innerHeight / 40;
+      camera.bottom = window.innerHeight / -40;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    plot2D();
+
+    // Simple animation loop to keep WebGL active
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
