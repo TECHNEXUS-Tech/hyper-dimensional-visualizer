@@ -3,20 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>V-FACTOR | ℝ⁵ 5D Penteract Workspace</title>
+  <title>V-FACTOR | ℝ⁵ Penteract & 5D Matrix Engine</title>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --cyan: #00FFFF;
-      --pink: #FF0055;
-      --bg-void: #050505;
-      --panel-bg: rgba(10, 10, 10, 0.85);
-    }
+    :root { --cyan: #00FFFF; --pink: #FF0055; --bg-void: #050505; --panel-bg: rgba(10, 10, 10, 0.95); }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background-color: var(--bg-void); color: #FFF; font-family: 'Space Mono', monospace; overflow: hidden; user-select: none; }
@@ -27,41 +23,49 @@
     #canvas-container { position: absolute; top: 0; right: 0; width: 100vw; height: 100vh; z-index: 1; animation: fadeIn 2s ease; }
 
     #command-terminal {
-      position: absolute; top: 0; left: 0; width: 400px; height: 100vh;
+      position: absolute; top: 0; left: 0; width: 440px; height: 100vh;
       background: var(--panel-bg); border-right: 2px solid rgba(0, 255, 255, 0.3);
-      z-index: 10; padding: 30px; display: flex; flex-direction: column; gap: 30px;
-      backdrop-filter: blur(10px); box-shadow: 10px 0 30px rgba(0,0,0,0.8);
-      animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%);
+      z-index: 10; padding: 25px; display: flex; flex-direction: column; gap: 15px;
+      backdrop-filter: blur(15px); box-shadow: 10px 0 30px rgba(0,0,0,0.9);
+      animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards; overflow-y: auto;
     }
 
-    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan); }
-    .terminal-header h2 { font-size: 0.8rem; color: var(--pink); letter-spacing: 4px; margin-top: 5px; }
+    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan); }
+    .terminal-header h2 { font-size: 0.75rem; color: var(--pink); letter-spacing: 3px; margin-top: 4px; }
 
-    .nav-tabs { display: flex; gap: 5px; border-bottom: 1px solid #333; padding-bottom: 15px; }
-    .nav-btn {
-      flex: 1; background: transparent; border: 1px solid #333; color: #888;
-      padding: 6px 0; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; cursor: pointer; transition: 0.3s;
-      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-    }
+    .nav-tabs { display: flex; gap: 6px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+    .nav-btn { flex: 1; background: transparent; border: 1px solid #333; color: #888; padding: 6px 0; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; cursor: pointer; transition: 0.3s; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
     .nav-btn:hover { border-color: var(--cyan); color: #FFF; }
     .nav-btn.active { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); color: var(--cyan); box-shadow: inset 0 0 10px rgba(0,255,255,0.2); }
 
-    .control-group { display: flex; flex-direction: column; gap: 15px; }
-    .control-group label { color: var(--cyan); font-size: 0.9rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    .control-group label { color: var(--cyan); font-size: 0.8rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
     
-    input[type="range"] {
-      -webkit-appearance: none; width: 100%; background: #0A0A0A; height: 10px;
-      border: 1px solid rgba(0, 255, 255, 0.4); outline: none; border-radius: 5px;
+    select, input[type="text"], input[type="number"] {
+      background: #0A0A0A; border: 1px solid rgba(0, 255, 255, 0.4); color: #FFF;
+      padding: 8px; font-family: 'Space Mono', monospace; font-size: 0.85rem;
+      outline: none; transition: 0.3s; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 20px; height: 20px; background: var(--cyan);
-      cursor: pointer; box-shadow: 0 0 10px var(--cyan);
-    }
+    select:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--pink); box-shadow: 0 0 10px rgba(255,0,85,0.2); }
 
-    .utility-row { display: flex; gap: 10px; margin-top: auto; }
-    .util-btn { flex: 1; background: transparent; border: 1px solid #444; color: #AAA; padding: 10px; font-family: 'Space Mono', monospace; cursor: pointer; transition: 0.3s; }
+    /* 5x5 Matrix Grid (Compact) */
+    .matrix-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; background: rgba(0,0,0,0.5); padding: 8px; border: 1px solid #333; }
+    .matrix-grid-5 input { padding: 6px 2px; text-align: center; font-size: 0.75rem; border-color: #444; border-radius: 0; clip-path: none; }
+    .matrix-grid-5 input:focus { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); }
+
+    .action-btn { background: rgba(0, 255, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan); padding: 10px; font-family: 'Orbitron', sans-serif; font-size: 0.95rem; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+    .action-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+
+    .telemetry-box { background: rgba(0,0,0,0.5); border: 1px solid #222; padding: 10px; font-size: 0.75rem; line-height: 1.5; color: #CCC; }
+    .telemetry-box span { color: var(--pink); }
+
+    .utility-row { display: flex; gap: 10px; margin-top: auto; padding-top: 10px; }
+    .util-btn { flex: 1; background: transparent; border: 1px solid #444; color: #AAA; padding: 8px; font-family: 'Space Mono', monospace; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
     .util-btn:hover { border-color: #FFF; color: #FFF; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -69,44 +73,85 @@
   <div id="command-terminal">
     <div class="terminal-header">
       <h1>V-FACTOR</h1>
-      <h2>ℝ⁵ 5D PENTERACT</h2>
+      <h2>ℝ⁵ MANIFOLD & 5x5 MATRICES</h2>
     </div>
 
     <div class="nav-tabs">
-      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">3D</button>
-      <button class="nav-btn" onclick="window.location.href='4d-workspace.html'">4D</button>
-      <button class="nav-btn active">5D</button>
+      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">3D Space</button>
+      <button class="nav-btn" onclick="window.location.href='4d-workspace.html'">4D Vector</button>
+      <button class="nav-btn active">5D Core</button>
+      <button class="nav-btn" onclick="window.location.href='index.html'">Hub</button>
     </div>
 
     <div class="control-group">
-      <label><span>5D Hyper-Rotation</span> <span id="angle-val">0.00 rad</span></label>
-      <input type="range" id="hyper-slider" min="0" max="6.28" step="0.01" value="0">
+      <label>Generation Protocol</label>
+      <select id="mode-select" onchange="toggleMode()">
+        <option value="parametric">Parametric Hyper-Manifold (u, t)</option>
+        <option value="function">Dense Volume (v = f(x,y,z,w))</option>
+      </select>
     </div>
 
-    <div class="control-group" style="margin-top: 20px; opacity: 0.5;">
-      <label style="color: #888;">System Telemetry</label>
-      <div style="font-size: 0.8rem; line-height: 1.5;">
-        Vertices: 32 (5D) / 80 (Edges)<br>
-        Pipeline: 5D → 4D → 3D<br>
-        Status: <span style="color: #0F0;">Online</span>
+    <!-- Parametric Inputs -->
+    <div id="parametric-inputs" class="control-group">
+      <label>Parametric Equations (u, t ∈ [0, 2π])</label>
+      <input type="text" id="param-x" value="cos(u)*cos(t)" placeholder="x(u,t)">
+      <input type="text" id="param-y" value="cos(u)*sin(t)" placeholder="y(u,t)">
+      <input type="text" id="param-z" value="sin(u)*cos(t)" placeholder="z(u,t)">
+      <input type="text" id="param-w" value="sin(u)*sin(t)" placeholder="w(u,t)">
+      <input type="text" id="param-v" value="cos(u*2)" placeholder="v(u,t)">
+    </div>
+
+    <!-- Dense Function Inputs -->
+    <div id="function-inputs" class="control-group" style="display: none;">
+      <label style="color:#FF0055;">5D Hyper-Volume (Strict ±1.5 Limit)</label>
+      <input type="text" id="func-v" value="sin(x)*cos(y)*z*w" placeholder="v = f(x,y,z,w)">
+    </div>
+
+    <!-- 5x5 Linear Transformation Matrix -->
+    <div class="control-group">
+      <label><span>T : ℝ⁵ → ℝ⁵ Matrix</span> <span>[5x5]</span></label>
+      <div class="matrix-grid-5" id="matrix-inputs">
+        <input type="number" id="m00" value="1" step="0.1"><input type="number" id="m01" value="0" step="0.1"><input type="number" id="m02" value="0" step="0.1"><input type="number" id="m03" value="0" step="0.1"><input type="number" id="m04" value="0" step="0.1">
+        <input type="number" id="m10" value="0" step="0.1"><input type="number" id="m11" value="1" step="0.1"><input type="number" id="m12" value="0" step="0.1"><input type="number" id="m13" value="0" step="0.1"><input type="number" id="m14" value="0" step="0.1">
+        <input type="number" id="m20" value="0" step="0.1"><input type="number" id="m21" value="0" step="0.1"><input type="number" id="m22" value="1" step="0.1"><input type="number" id="m23" value="0" step="0.1"><input type="number" id="m24" value="0" step="0.1">
+        <input type="number" id="m30" value="0" step="0.1"><input type="number" id="m31" value="0" step="0.1"><input type="number" id="m32" value="0" step="0.1"><input type="number" id="m33" value="1" step="0.1"><input type="number" id="m34" value="0" step="0.1">
+        <input type="number" id="m40" value="0" step="0.1"><input type="number" id="m41" value="0" step="0.1"><input type="number" id="m42" value="0" step="0.1"><input type="number" id="m43" value="0" step="0.1"><input type="number" id="m44" value="1" step="0.1">
       </div>
     </div>
 
-    <div class="utility-row">
-      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return Hub</button>
-      <button class="util-btn" onclick="autoRotateToggle()" id="auto-btn">Auto-Spin: OFF</button>
+    <button class="action-btn" onclick="plot5D()">Execute Double Projection</button>
+
+    <div class="control-group">
+      <label style="color: var(--pink);">Engine Telemetry</label>
+      <div class="telemetry-box">
+        Vertices Calculated: <span id="v-count">0</span><br>
+        Algorithm: <span id="telemetry-proj">ℝ⁵ → ℝ⁴ → ℝ³</span>
+      </div>
     </div>
+
+    <div class="utility-row"><button class="util-btn" onclick="window.location.href='index.html'">◄ Return to Hub</button></div>
   </div>
 
   <div id="canvas-container"></div>
 
   <script>
+    function toggleMode() {
+      const mode = document.getElementById('mode-select').value;
+      if(mode === 'parametric') {
+        document.getElementById('parametric-inputs').style.display = 'flex';
+        document.getElementById('function-inputs').style.display = 'none';
+      } else {
+        document.getElementById('parametric-inputs').style.display = 'none';
+        document.getElementById('function-inputs').style.display = 'flex';
+      }
+    }
+
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x050505, 0.03);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 7);
+    camera.position.set(5, 5, 8);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -114,122 +159,109 @@
     container.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    controls.enableDamping = true; controls.dampingFactor = 0.05; controls.target.set(-2, 0, 0);
 
-    // --- 5D PENTERACT DATA GENERATION (32 Vertices) ---
-    let hyperVertices = [];
-    for (let i = 0; i < 32; i++) {
-        hyperVertices.push({ 
-          x: (i & 1) ? 1 : -1, 
-          y: (i & 2) ? 1 : -1, 
-          z: (i & 4) ? 1 : -1, 
-          w: (i & 8) ? 1 : -1,
-          v: (i & 16) ? 1 : -1
-        });
-    }
+    const gridHelper = new THREE.GridHelper(30, 30, 0x222222, 0x111111);
+    gridHelper.position.y = -4; scene.add(gridHelper);
 
-    let edges = [];
-    for (let i = 0; i < 32; i++) {
-        for (let j = i + 1; j < 32; j++) {
-            let diff = 0;
-            if (hyperVertices[i].x !== hyperVertices[j].x) diff++;
-            if (hyperVertices[i].y !== hyperVertices[j].y) diff++;
-            if (hyperVertices[i].z !== hyperVertices[j].z) diff++;
-            if (hyperVertices[i].w !== hyperVertices[j].w) diff++;
-            if (hyperVertices[i].v !== hyperVertices[j].v) diff++;
-            if (diff === 1) edges.push([i, j]);
-        }
-    }
+    let currentHyperShape = null;
 
-    const geometry = new THREE.BufferGeometry();
-    const positions5D = new Float32Array(edges.length * 2 * 3); 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions5D, 3));
+    function plot5D() {
+      if (currentHyperShape) { scene.remove(currentHyperShape); currentHyperShape.geometry.dispose(); currentHyperShape.material.dispose(); }
 
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00FFFF, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
-    const penteractLines = new THREE.LineSegments(geometry, lineMaterial);
-    
-    const pointMat = new THREE.PointsMaterial({ color: 0xFF0055, size: 0.15 });
-    const penteractPoints = new THREE.Points(geometry, pointMat);
-    
-    scene.add(penteractLines);
-    scene.add(penteractPoints);
+      const mode = document.getElementById('mode-select').value;
+      const vertices = []; const colors = []; const colorObj = new THREE.Color();
 
-    const slider = document.getElementById('hyper-slider');
-    let autoRotate = false;
-    let manualAngle = 0;
-
-    slider.addEventListener('input', (e) => {
-      manualAngle = parseFloat(e.target.value);
-      document.getElementById('angle-val').innerText = manualAngle.toFixed(2) + " rad";
-      if(autoRotate) autoRotateToggle();
-    });
-
-    function autoRotateToggle() {
-      autoRotate = !autoRotate;
-      const btn = document.getElementById('auto-btn');
-      btn.innerText = autoRotate ? "Auto-Spin: ON" : "Auto-Spin: OFF";
-      btn.style.borderColor = autoRotate ? "#00FFFF" : "#444";
-      btn.style.color = autoRotate ? "#00FFFF" : "#AAA";
-    }
-
-    function update5DProjection(angle) {
-      let index = 0;
-
-      for (let i = 0; i < edges.length; i++) {
-          for (let j = 0; j < 2; j++) {
-              let pt = hyperVertices[edges[i][j]];
-
-              // 5D Multi-Plane Rotations (XW and YV planes)
-              let x = pt.x * Math.cos(angle) - pt.w * Math.sin(angle);
-              let w = pt.x * Math.sin(angle) + pt.w * Math.cos(angle);
-              
-              let y = pt.y * Math.cos(angle) - pt.v * Math.sin(angle);
-              let v = pt.y * Math.sin(angle) + pt.v * Math.cos(angle);
-              
-              let z = pt.z;
-
-              // Double Stereographic Projection (5D -> 4D -> 3D)
-              let distance1 = 3.0;
-              let p1 = 1 / (distance1 - v); // 5D to 4D
-              
-              let x4 = x * p1;
-              let y4 = y * p1;
-              let z4 = z * p1;
-              let w4 = w * p1;
-
-              let distance2 = 2.5;
-              let p2 = 1 / (distance2 - w4); // 4D to 3D
-
-              positions5D[index++] = (x4 * p2) * 2.5;
-              positions5D[index++] = (y4 * p2) * 2.5;
-              positions5D[index++] = (z4 * p2) * 2.5;
-          }
+      // Read 5x5 Matrix
+      const M = [];
+      for(let r=0; r<5; r++) {
+        M[r] = [];
+        for(let c=0; c<5; c++) M[r][c] = parseFloat(document.getElementById(`m${r}${c}`).value);
       }
-      geometry.attributes.position.needsUpdate = true;
+
+      try {
+        if (mode === 'parametric') {
+          const cX = math.compile(document.getElementById('param-x').value); const cY = math.compile(document.getElementById('param-y').value);
+          const cZ = math.compile(document.getElementById('param-z').value); const cW = math.compile(document.getElementById('param-w').value);
+          const cV = math.compile(document.getElementById('param-v').value);
+
+          for(let u = 0; u <= Math.PI * 2; u += 0.2) {
+            for(let t = 0; t <= Math.PI * 2; t += 0.2) {
+              let scope = { u: u, t: t };
+              let x = cX.evaluate(scope); let y = cY.evaluate(scope); let z = cZ.evaluate(scope); let w = cW.evaluate(scope); let v = cV.evaluate(scope);
+              if(!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(w) || !isFinite(v)) continue;
+              process5DPoint(x, y, z, w, v, M, vertices, colors, colorObj);
+            }
+          }
+        } else {
+          // Dense 5D Loop (Strict bounding to prevent crashing browsers)
+          const cV = math.compile(document.getElementById('func-v').value);
+          for(let x = -1.5; x <= 1.5; x += 0.5) {
+            for(let y = -1.5; y <= 1.5; y += 0.5) {
+              for(let z = -1.5; z <= 1.5; z += 0.5) {
+                for(let w = -1.5; w <= 1.5; w += 0.5) {
+                  let v = cV.evaluate({x: x, y: y, z: z, w: w});
+                  if(!isFinite(v)) continue;
+                  process5DPoint(x, y, z, w, v, M, vertices, colors, colorObj);
+                }
+              }
+            }
+          }
+        }
+
+        document.getElementById('v-count').innerText = (vertices.length / 3).toLocaleString();
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const mat = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
+        currentHyperShape = new THREE.Points(geom, mat);
+        scene.add(currentHyperShape);
+      } catch (e) { console.error("5D Engine Error: ", e); }
+    }
+
+    function process5DPoint(x, y, z, w, v, M, vertices, colors, colorObj) {
+      // 1. Matrix Multiplication (5D Vector by 5x5 Matrix)
+      let nx = M[0][0]*x + M[0][1]*y + M[0][2]*z + M[0][3]*w + M[0][4]*v;
+      let ny = M[1][0]*x + M[1][1]*y + M[1][2]*z + M[1][3]*w + M[1][4]*v;
+      let nz = M[2][0]*x + M[2][1]*y + M[2][2]*z + M[2][3]*w + M[2][4]*v;
+      let nw = M[3][0]*x + M[3][1]*y + M[3][2]*z + M[3][3]*w + M[3][4]*v;
+      let nv = M[4][0]*x + M[4][1]*y + M[4][2]*z + M[4][3]*w + M[4][4]*v;
+
+      // 2. First Stereographic Projection (5D -> 4D based on V-axis)
+      let dist5 = 5.0;
+      let denom5 = dist5 - nv;
+      if (Math.abs(denom5) < 0.001) denom5 = 0.001; 
+      let p5 = 1 / denom5;
+
+      let x4 = nx * p5; let y4 = ny * p5; let z4 = nz * p5; let w4 = nw * p5;
+
+      // 3. Second Stereographic Projection (4D -> 3D based on W-axis)
+      let dist4 = 4.0;
+      let denom4 = dist4 - w4;
+      if (Math.abs(denom4) < 0.001) denom4 = 0.001;
+      let p4 = 1 / denom4;
+
+      let px = x4 * p4; let py = y4 * p4; let pz = z4 * p4;
+
+      vertices.push((px * 2) - 2, py * 2, pz * 2);
+
+      // Color mapping dictated purely by the 5th dimension (nv)
+      let hue = 0.5 + (nv * 0.2); 
+      colorObj.setHSL(hue, 1.0, 0.6);
+      colors.push(colorObj.r, colorObj.g, colorObj.b);
     }
 
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
-
-      if (autoRotate) {
-        manualAngle += 0.008;
-        if(manualAngle > 6.28) manualAngle = 0;
-        slider.value = manualAngle;
-        document.getElementById('angle-val').innerText = manualAngle.toFixed(2) + " rad";
-      }
-
-      update5DProjection(manualAngle);
+      if(currentHyperShape) { currentHyperShape.rotation.y += 0.002; currentHyperShape.rotation.x += 0.001; }
       renderer.render(scene, camera);
     }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
 
+    plot5D();
     animate();
   </script>
 </body>
