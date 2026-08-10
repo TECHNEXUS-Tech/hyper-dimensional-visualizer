@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>V-FACTOR | ℝ⁴ Hypercube Workspace</title>
+  <title>V-FACTOR | ℝ⁴ Hyper-Geometry & Vector Space Lab</title>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
@@ -15,7 +16,7 @@
       --cyan: #00FFFF;
       --pink: #FF0055;
       --bg-void: #050505;
-      --panel-bg: rgba(10, 10, 10, 0.85);
+      --panel-bg: rgba(10, 10, 10, 0.9);
     }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,113 +25,158 @@
     @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    #canvas-container {
-      position: absolute; top: 0; right: 0; 
-      width: 100vw; height: 100vh; z-index: 1;
-      animation: fadeIn 2s ease;
-    }
+    #canvas-container { position: absolute; top: 0; right: 0; width: 100vw; height: 100vh; z-index: 1; animation: fadeIn 2s ease; }
 
     #command-terminal {
-      position: absolute; top: 0; left: 0;
-      width: 400px; height: 100vh;
-      background: var(--panel-bg);
-      border-right: 2px solid rgba(255, 0, 85, 0.3);
-      z-index: 10;
-      padding: 30px;
-      display: flex; flex-direction: column; gap: 30px;
-      backdrop-filter: blur(10px);
-      box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+      position: absolute; top: 0; left: 0; width: 440px; height: 100vh;
+      background: var(--panel-bg); border-right: 2px solid rgba(0, 255, 255, 0.3);
+      z-index: 10; padding: 25px; display: flex; flex-direction: column; gap: 20px;
+      backdrop-filter: blur(15px); box-shadow: 10px 0 30px rgba(0,0,0,0.9);
       animation: slideInLeft 0.8s cubic-bezier(0.1, 1, 0.2, 1) forwards;
       clip-path: polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%);
+      overflow-y: auto;
     }
 
-    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: var(--pink); letter-spacing: 2px; text-shadow: 0 0 10px var(--pink); }
-    .terminal-header h2 { font-size: 0.8rem; color: var(--cyan); letter-spacing: 4px; margin-top: 5px; }
+    .terminal-header h1 { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: var(--cyan); letter-spacing: 2px; text-shadow: 0 0 10px var(--cyan); }
+    .terminal-header h2 { font-size: 0.75rem; color: var(--pink); letter-spacing: 3px; margin-top: 4px; }
 
-    .nav-tabs { display: flex; gap: 10px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+    .nav-tabs { display: flex; gap: 6px; border-bottom: 1px solid #333; padding-bottom: 12px; }
     .nav-btn {
       flex: 1; background: transparent; border: 1px solid #333; color: #888;
-      padding: 8px 0; font-family: 'Orbitron', sans-serif; cursor: pointer; transition: 0.3s;
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+      padding: 6px 0; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; cursor: pointer; transition: 0.3s;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     }
     .nav-btn:hover { border-color: var(--cyan); color: #FFF; }
-    .nav-btn.active { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); color: var(--cyan); text-shadow: 0 0 8px var(--cyan); box-shadow: inset 0 0 10px rgba(0,255,255,0.2); }
+    .nav-btn.active { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); color: var(--cyan); box-shadow: inset 0 0 10px rgba(0,255,255,0.2); }
 
-    .control-group { display: flex; flex-direction: column; gap: 15px; }
-    .control-group label { color: var(--pink); font-size: 0.9rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    .control-group { display: flex; flex-direction: column; gap: 10px; }
+    .control-group label { color: var(--cyan); font-size: 0.85rem; letter-spacing: 1px; display: flex; justify-content: space-between; }
     
-    /* Custom Sci-Fi Range Slider */
-    input[type="range"] {
-      -webkit-appearance: none; width: 100%; background: #0A0A0A; height: 10px;
-      border: 1px solid rgba(255, 0, 85, 0.4); outline: none; border-radius: 5px;
+    select, input[type="text"], input[type="number"] {
+      background: #0A0A0A; border: 1px solid rgba(0, 255, 255, 0.4); color: #FFF;
+      padding: 10px; font-family: 'Space Mono', monospace; font-size: 0.9rem;
+      outline: none; transition: 0.3s;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 20px; height: 20px; background: var(--pink);
-      cursor: pointer; box-shadow: 0 0 10px var(--pink);
-    }
+    select:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--pink); box-shadow: 0 0 10px rgba(255,0,85,0.2); }
 
-    .utility-row { display: flex; gap: 10px; margin-top: auto; }
-    .util-btn {
-      flex: 1; background: transparent; border: 1px solid #444; color: #AAA;
-      padding: 10px; font-family: 'Space Mono', monospace; cursor: pointer; transition: 0.3s;
+    /* 4x4 Matrix Grid */
+    .matrix-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #333; }
+    .matrix-grid input { padding: 8px 4px; text-align: center; font-size: 0.8rem; border-color: #444; border-radius: 0; clip-path: none; }
+    .matrix-grid input:focus { border-color: var(--cyan); background: rgba(0, 255, 255, 0.1); }
+
+    .action-btn {
+      background: rgba(0, 255, 255, 0.1); border: 1px solid var(--cyan); color: var(--cyan);
+      padding: 12px; font-family: 'Orbitron', sans-serif; font-size: 1rem; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     }
+    .action-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+
+    .telemetry-box { background: rgba(0,0,0,0.5); border: 1px solid #222; padding: 12px; font-size: 0.78rem; line-height: 1.6; color: #CCC; }
+    .telemetry-box span { color: var(--pink); }
+
+    .utility-row { display: flex; gap: 10px; margin-top: auto; padding-top: 10px; }
+    .util-btn { flex: 1; background: transparent; border: 1px solid #444; color: #AAA; padding: 8px; font-family: 'Space Mono', monospace; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
     .util-btn:hover { border-color: #FFF; color: #FFF; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
   </style>
 </head>
 <body>
 
-  <!-- LEFT HUD COMMAND TERMINAL -->
   <div id="command-terminal">
-    
     <div class="terminal-header">
       <h1>V-FACTOR</h1>
-      <h2>ℝ⁴ HYPERCUBE WORKSPACE</h2>
+      <h2>ℝ⁴ VECTOR SPACE & HYPER-GEOMETRY</h2>
     </div>
 
-    <!-- Dimension Navigation Tabs -->
     <div class="nav-tabs">
-      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">3D Surface</button>
-      <button class="nav-btn active">4D Hypercube</button>
+      <button class="nav-btn" onclick="window.location.href='3d-workspace.html'">3D Space</button>
+      <button class="nav-btn active">4D Vector</button>
+      <button class="nav-btn" onclick="window.location.href='5d-workspace.html'">5D Space</button>
+      <button class="nav-btn" onclick="window.location.href='index.html'">Hub</button>
     </div>
 
-    <!-- Hyper-Rotation Controls -->
+    <!-- Mode Selector -->
     <div class="control-group">
-      <label><span>Hyper-Rotation</span> <span id="angle-val">0.00 rad</span></label>
-      <input type="range" id="hyper-slider" min="0" max="6.28" step="0.01" value="0">
+      <label>Generation Protocol</label>
+      <select id="mode-select" onchange="toggleMode()">
+        <option value="parametric">Parametric Hyper-Surface (u, v)</option>
+        <option value="function">Dense Function Vol. (w = f(x,y,z))</option>
+      </select>
     </div>
 
-    <!-- Telemetry Display -->
-    <div class="control-group" style="margin-top: 20px; opacity: 0.5;">
-      <label style="color: #888;">System Telemetry</label>
-      <div style="font-size: 0.8rem; line-height: 1.5;">
-        Vertices: 16 (4D) / 32 (Edges)<br>
-        Projection: Stereographic<br>
-        Status: <span style="color: #0F0;">Online</span>
+    <!-- Parametric Inputs (Default: Clifford Torus) -->
+    <div id="parametric-inputs" class="control-group">
+      <label>Parametric Equations (u, v ∈ [0, 2π])</label>
+      <input type="text" id="param-x" value="cos(u)" placeholder="x(u,v)">
+      <input type="text" id="param-y" value="sin(u)" placeholder="y(u,v)">
+      <input type="text" id="param-z" value="cos(v)" placeholder="z(u,v)">
+      <input type="text" id="param-w" value="sin(v)" placeholder="w(u,v)">
+    </div>
+
+    <!-- Dense Function Inputs -->
+    <div id="function-inputs" class="control-group" style="display: none;">
+      <label>4D Hypersurface (Strict Bounds: ±2)</label>
+      <input type="text" id="func-w" value="sin(x)*cos(y)*z" placeholder="w = f(x,y,z)">
+    </div>
+
+    <!-- 4x4 Linear Transformation Matrix -->
+    <div class="control-group">
+      <label><span>T : ℝ⁴ → ℝ⁴ Linear Transformation</span> <span>(Matrix)</span></label>
+      <div class="matrix-grid" id="matrix-inputs">
+        <!-- Row 1 -->
+        <input type="number" id="m00" value="1" step="0.1"><input type="number" id="m01" value="0" step="0.1"><input type="number" id="m02" value="0" step="0.1"><input type="number" id="m03" value="0" step="0.1">
+        <!-- Row 2 -->
+        <input type="number" id="m10" value="0" step="0.1"><input type="number" id="m11" value="1" step="0.1"><input type="number" id="m12" value="0" step="0.1"><input type="number" id="m13" value="0" step="0.1">
+        <!-- Row 3 -->
+        <input type="number" id="m20" value="0" step="0.1"><input type="number" id="m21" value="0" step="0.1"><input type="number" id="m22" value="1" step="0.1"><input type="number" id="m23" value="0" step="0.1">
+        <!-- Row 4 -->
+        <input type="number" id="m30" value="0" step="0.1"><input type="number" id="m31" value="0" step="0.1"><input type="number" id="m32" value="0" step="0.1"><input type="number" id="m33" value="1" step="0.1">
       </div>
     </div>
 
-    <!-- Utility Buttons -->
-    <div class="utility-row">
-      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return to Hub</button>
-      <button class="util-btn" onclick="autoRotateToggle()" id="auto-btn">Auto-Spin: OFF</button>
+    <button class="action-btn" onclick="plot4D()">Execute Transformation</button>
+
+    <div class="control-group">
+      <label style="color: var(--pink);">Engine Telemetry</label>
+      <div class="telemetry-box">
+        Topology: <span id="telemetry-mode">Parametric Surface</span><br>
+        Vertices Calculated: <span id="v-count">0</span><br>
+        Projection: <span id="telemetry-proj">Stereographic 4D → 3D</span>
+      </div>
     </div>
 
+    <div class="utility-row">
+      <button class="util-btn" onclick="window.location.href='index.html'">◄ Return to Hub</button>
+    </div>
   </div>
 
-  <!-- RIGHT MAIN CANVAS -->
   <div id="canvas-container"></div>
 
-
   <script>
-    /* =========================================================
-       1. THREE.JS 4D ENGINE SETUP
-       ========================================================= */
+    function toggleMode() {
+      const mode = document.getElementById('mode-select').value;
+      if(mode === 'parametric') {
+        document.getElementById('parametric-inputs').style.display = 'flex';
+        document.getElementById('function-inputs').style.display = 'none';
+        document.getElementById('telemetry-mode').innerText = "Parametric Surface";
+      } else {
+        document.getElementById('parametric-inputs').style.display = 'none';
+        document.getElementById('function-inputs').style.display = 'flex';
+        document.getElementById('telemetry-mode').innerText = "Dense Volume (Strict)";
+      }
+    }
+
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x050505, 0.03);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 7);
+    camera.position.set(5, 5, 8);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -140,112 +186,108 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.target.set(-2, 0, 0);
 
-    /* =========================================================
-       2. TESSERACT DATA GENERATION
-       ========================================================= */
-    let hyperVertices = [];
-    for (let i = 0; i < 16; i++) {
-        hyperVertices.push({ 
-          x: (i & 1) ? 1 : -1, 
-          y: (i & 2) ? 1 : -1, 
-          z: (i & 4) ? 1 : -1, 
-          w: (i & 8) ? 1 : -1 
-        });
-    }
+    const gridHelper = new THREE.GridHelper(30, 30, 0x222222, 0x111111);
+    gridHelper.position.y = -4;
+    scene.add(gridHelper);
 
-    let edges = [];
-    for (let i = 0; i < 16; i++) {
-        for (let j = i + 1; j < 16; j++) {
-            let diff = 0;
-            if (hyperVertices[i].x !== hyperVertices[j].x) diff++;
-            if (hyperVertices[i].y !== hyperVertices[j].y) diff++;
-            if (hyperVertices[i].z !== hyperVertices[j].z) diff++;
-            if (hyperVertices[i].w !== hyperVertices[j].w) diff++;
-            if (diff === 1) edges.push([i, j]);
-        }
-    }
+    let currentHyperShape = null;
 
-    const geometry = new THREE.BufferGeometry();
-    const positions4D = new Float32Array(edges.length * 2 * 3); 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions4D, 3));
+    function plot4D() {
+      if (currentHyperShape) { scene.remove(currentHyperShape); currentHyperShape.geometry.dispose(); currentHyperShape.material.dispose(); }
 
-    const lineMaterial = new THREE.LineBasicMaterial({ 
-      color: 0x00FFFF, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending 
-    });
-    const tesseractLines = new THREE.LineSegments(geometry, lineMaterial);
-    
-    const pointMat = new THREE.PointsMaterial({ color: 0xFF0055, size: 0.2 });
-    const tesseractPoints = new THREE.Points(geometry, pointMat);
-    
-    scene.add(tesseractLines);
-    scene.add(tesseractPoints);
+      const mode = document.getElementById('mode-select').value;
+      const vertices = [];
+      const colors = [];
+      const colorObj = new THREE.Color();
 
-    /* =========================================================
-       3. PROJECTION & ROTATION PIPELINE
-       ========================================================= */
-    const slider = document.getElementById('hyper-slider');
-    let autoRotate = false;
-    let manualAngle = 0;
+      // Read 4x4 Matrix
+      const M = [
+        [parseFloat(document.getElementById('m00').value), parseFloat(document.getElementById('m01').value), parseFloat(document.getElementById('m02').value), parseFloat(document.getElementById('m03').value)],
+        [parseFloat(document.getElementById('m10').value), parseFloat(document.getElementById('m11').value), parseFloat(document.getElementById('m12').value), parseFloat(document.getElementById('m13').value)],
+        [parseFloat(document.getElementById('m20').value), parseFloat(document.getElementById('m21').value), parseFloat(document.getElementById('m22').value), parseFloat(document.getElementById('m23').value)],
+        [parseFloat(document.getElementById('m30').value), parseFloat(document.getElementById('m31').value), parseFloat(document.getElementById('m32').value), parseFloat(document.getElementById('m33').value)]
+      ];
 
-    slider.addEventListener('input', (e) => {
-      manualAngle = parseFloat(e.target.value);
-      document.getElementById('angle-val').innerText = manualAngle.toFixed(2) + " rad";
-      if(autoRotate) autoRotateToggle(); // Turn off auto-spin if user touches slider
-    });
+      try {
+        if (mode === 'parametric') {
+          const compX = math.compile(document.getElementById('param-x').value);
+          const compY = math.compile(document.getElementById('param-y').value);
+          const compZ = math.compile(document.getElementById('param-z').value);
+          const compW = math.compile(document.getElementById('param-w').value);
 
-    function autoRotateToggle() {
-      autoRotate = !autoRotate;
-      const btn = document.getElementById('auto-btn');
-      btn.innerText = autoRotate ? "Auto-Spin: ON" : "Auto-Spin: OFF";
-      btn.style.borderColor = autoRotate ? "#00FFFF" : "#444";
-      btn.style.color = autoRotate ? "#00FFFF" : "#AAA";
-    }
-
-    function update4DProjection(angle) {
-      let index = 0;
-
-      for (let i = 0; i < edges.length; i++) {
-          for (let j = 0; j < 2; j++) {
-              let v = hyperVertices[edges[i][j]];
-
-              // XW & ZW Plane Hyper-Rotations
-              let x_new = v.x * Math.cos(angle) - v.w * Math.sin(angle);
-              let w_new = v.x * Math.sin(angle) + v.w * Math.cos(angle);
-              let y_new = v.y;
-              let z_new = v.z;
-
-              let z_final = z_new * Math.cos(angle) - w_new * Math.sin(angle);
-              let w_final = z_new * Math.sin(angle) + w_new * Math.cos(angle);
-
-              // Stereographic Projection (4D -> 3D)
-              let w = 2.5 - w_final; 
-              if (w === 0) w = 0.001; 
-              let p = 1 / w;
-
-              positions4D[index++] = (x_new * p) * 3;
-              positions4D[index++] = (y_new * p) * 3;
-              positions4D[index++] = (z_final * p) * 3;
+          for(let u = 0; u <= Math.PI * 2; u += 0.15) {
+            for(let v = 0; v <= Math.PI * 2; v += 0.15) {
+              let scope = { u: u, v: v };
+              let x = compX.evaluate(scope); let y = compY.evaluate(scope);
+              let z = compZ.evaluate(scope); let w = compW.evaluate(scope);
+              if(!isFinite(x) || !isFinite(y) || !isFinite(z) || !isFinite(w)) continue;
+              processPoint(x, y, z, w, M, vertices, colors, colorObj);
+            }
           }
+        } else {
+          // Dense Function Mode: w = f(x,y,z). Strict boundaries to prevent crashes.
+          const compW = math.compile(document.getElementById('func-w').value);
+          for(let x = -2; x <= 2; x += 0.4) {
+            for(let y = -2; y <= 2; y += 0.4) {
+              for(let z = -2; z <= 2; z += 0.4) {
+                let w = compW.evaluate({x: x, y: y, z: z});
+                if(!isFinite(w)) continue;
+                processPoint(x, y, z, w, M, vertices, colors, colorObj);
+              }
+            }
+          }
+        }
+
+        document.getElementById('v-count').innerText = (vertices.length / 3).toLocaleString();
+
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const mat = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+        currentHyperShape = new THREE.Points(geom, mat);
+        scene.add(currentHyperShape);
+
+      } catch (e) {
+        console.error("4D Engine Error: ", e);
       }
-      geometry.attributes.position.needsUpdate = true;
     }
 
-    /* =========================================================
-       4. ANIMATION LOOP
-       ========================================================= */
+    // Matrix Multiplication & Stereographic Projection Core
+    function processPoint(x, y, z, w, M, vertices, colors, colorObj) {
+      // 1. Apply User Linear Transformation (Matrix Multiplication)
+      let nx = M[0][0]*x + M[0][1]*y + M[0][2]*z + M[0][3]*w;
+      let ny = M[1][0]*x + M[1][1]*y + M[1][2]*z + M[1][3]*w;
+      let nz = M[2][0]*x + M[2][1]*y + M[2][2]*z + M[2][3]*w;
+      let nw = M[3][0]*x + M[3][1]*y + M[3][2]*z + M[3][3]*w;
+
+      // 2. Stereographic Projection (4D -> 3D)
+      let distance = 4.0;
+      let denom = distance - nw;
+      if (Math.abs(denom) < 0.001) denom = 0.001; // Prevent division by zero infinity
+      let projFactor = 1 / denom;
+
+      let px = nx * projFactor;
+      let py = ny * projFactor;
+      let pz = nz * projFactor;
+
+      vertices.push(px - 2, py, pz); // Shift X left for UI balance
+
+      // 3. Color Map based on 4D W-axis (allows us to "see" the 4th dimension)
+      let hue = 0.5 + (nw * 0.15); // Shifts from Cyan to Pink based on W depth
+      colorObj.setHSL(hue, 1.0, 0.6);
+      colors.push(colorObj.r, colorObj.g, colorObj.b);
+    }
+
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
-
-      if (autoRotate) {
-        manualAngle += 0.01;
-        if(manualAngle > 6.28) manualAngle = 0;
-        slider.value = manualAngle;
-        document.getElementById('angle-val').innerText = manualAngle.toFixed(2) + " rad";
+      if(currentHyperShape) {
+        currentHyperShape.rotation.y += 0.002;
+        currentHyperShape.rotation.z += 0.001;
       }
-
-      update4DProjection(manualAngle);
       renderer.render(scene, camera);
     }
 
@@ -255,6 +297,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    plot4D();
     animate();
   </script>
 </body>
